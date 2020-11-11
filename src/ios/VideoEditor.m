@@ -144,7 +144,7 @@
     encoder.shouldOptimizeForNetworkUse = optimizeForNetworkUse;
     encoder.videoSettings = @
     {
-        AVVideoCodecKey: AVVideoCodecH264,
+        AVVideoCodecKey: AVVideoCodecTypeH264,
         AVVideoWidthKey: [NSNumber numberWithInt: newWidth],
         AVVideoHeightKey: [NSNumber numberWithInt: newHeight],
         AVVideoCompressionPropertiesKey: @
@@ -458,7 +458,7 @@
             dispatchTime = getDispatchTimeFromSeconds((float)1.0);
             double progress = [exportSession progress] * 100;
 
-            NSLog([NSString stringWithFormat:@"AVAssetExport running progress=%3.2f%%", progress]);
+            NSLog(@"%@", [NSString stringWithFormat:@"AVAssetExport running progress=%3.2f%%", progress]);
 
             NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
@@ -485,7 +485,7 @@
 
         switch ([exportSession status]) {
             case AVAssetExportSessionStatusCompleted:
-                NSLog(@"[Trim]: Export Complete %d %@", exportSession.status, exportSession.error);
+                NSLog(@"[Trim]: Export Complete %ld %@", (long)exportSession.status, exportSession.error);
                 [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:videoOutput] callbackId:command.callbackId];
                 break;
             case AVAssetExportSessionStatusFailed:
@@ -508,13 +508,22 @@
 {
     NSURL *url = [NSURL fileURLWithPath:srcVideoPath];
 
+//    if ([srcVideoPath rangeOfString:@"://"].location == NSNotFound)
+//    {
+//        url = [NSURL URLWithString:[[@"file://localhost" stringByAppendingString:srcVideoPath] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+//    }
+//    else
+//    {
+//        url = [NSURL URLWithString:[srcVideoPath stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding]];
+//    }
+    
     if ([srcVideoPath rangeOfString:@"://"].location == NSNotFound)
     {
-        url = [NSURL URLWithString:[[@"file://localhost" stringByAppendingString:srcVideoPath] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        url = [NSURL URLWithString:[[@"file://localhost" stringByAppendingString:srcVideoPath] stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLFragmentAllowedCharacterSet]];
     }
     else
     {
-        url = [NSURL URLWithString:[srcVideoPath stringByAddingPercentEscapesUsingEncoding: NSUTF8StringEncoding]];
+        url = [NSURL URLWithString:[srcVideoPath stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLFragmentAllowedCharacterSet]];
     }
 
     AVAsset *asset = [AVAsset assetWithURL:url];
@@ -563,15 +572,27 @@
         return @"portrait";
 }
 
+// - (NSURL*)getURLFromFilePath:(NSString*)filePath
+// {
+//     if ([filePath containsString:@"assets-library://"]) {
+//         return [NSURL URLWithString:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+//     } else if ([filePath containsString:@"file://"]) {
+//         return [NSURL URLWithString:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+//     }
+
+//     return [NSURL fileURLWithPath:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+// }
+
 - (NSURL*)getURLFromFilePath:(NSString*)filePath
 {
     if ([filePath containsString:@"assets-library://"]) {
-        return [NSURL URLWithString:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        return [NSURL URLWithString:[filePath stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLFragmentAllowedCharacterSet]];
+        
     } else if ([filePath containsString:@"file://"]) {
-        return [NSURL URLWithString:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        return [NSURL URLWithString:[filePath stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLFragmentAllowedCharacterSet]];
     }
 
-    return [NSURL fileURLWithPath:[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+    return [NSURL fileURLWithPath:[filePath stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLFragmentAllowedCharacterSet]];
 }
 
 static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
